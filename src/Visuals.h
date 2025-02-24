@@ -5,29 +5,22 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-using namespace std;
-
 class Visualization {
 public:
     Visualization(int windowWidth, int windowHeight);
     ~Visualization();
 
-    // Initialize the GLFW window
     bool initialize();
-
-    // Render the FFT visualization
-    void render(const vector<float>& fftMagnitudes);
-
-    // Check if the window should close
+    void render(const std::vector<float>& fftMagnitudes);
     bool shouldClose();
-
-    // Cleanup resources
     void cleanup();
 
 private:
-    int windowWidth;
-    int windowHeight;
+    int windowWidth, windowHeight;
     GLFWwindow* window;
+    GLuint vbo, vao, shaderProgram;
+
+    std::vector<float> smoothedFFT;  // ✅ Added this to store smoothed FFT data
 };
 
-#endif // VISUALIZATION_H
+#endif
