@@ -55,7 +55,9 @@ int main() {
     }
 
     while (!visualization->shouldClose()) {
+        std::cerr << "DEBUG: Inside while loop..." << std::endl;
         auto fftData = audioProcessor.getFFTData();
+        std::cerr << "DEBUG: Calling render()..." << std::endl;
         visualization->render(fftData);
     }
 
