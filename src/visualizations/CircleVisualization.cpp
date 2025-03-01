@@ -10,6 +10,7 @@ CircleVisualization::~CircleVisualization() {
 }
 
 bool CircleVisualization::initialize(int windowWidth, int windowHeight) {
+    std::cerr << "DEBUG: Initializing Circle Visualization..." << std::endl;
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW." << std::endl;
         return false;
@@ -32,14 +33,45 @@ bool CircleVisualization::initialize(int windowWidth, int windowHeight) {
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
 
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    // ✅ Define vertex attribute layout (Position: location 0)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // ✅ Define vertex attribute layout (Color: location 1)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    std::cerr << "DEBUG: VAO and VBO configured successfully!" << std::endl;
+
     return true;
 }
 
+
 void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
+    std::cerr << "DEBUG: ENtered CircleVisualization::render()" << std::endl;
     glClear(GL_COLOR_BUFFER_BIT);
 
-    size_t numPoints = fftMagnitudes.size();
+    if (fftMagnitudes.empty()) {
+        std::cerr << "ERROR: No FFT data received!\n";
+        return;
+    }
+
+    size_t numPoints = fftMagnitudes.size() / 8;
     std::vector<float> vertices;
+
+    if (smoothedFFT.size() != numPoints) {
+        smoothedFFT.resize(numPoints, 0.0f);
+    }
+
+    std::cerr << "DEBUG: numPoints = " << numPoints << std::endl;
+
+    if (numPoints == 0) {
+        std::cerr << "ERROR: No FFT data received!" << std::endl;
+        return;
+    }
 
     float decayFactor = 0.9f;
     for (size_t i = 0; i < numPoints; ++i) {
@@ -60,25 +92,42 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
             float x = centerX + radius * cos(theta + angle);
             float y = centerY + radius * sin(theta + angle);
 
-            vertices.push_back(x);
-            vertices.push_back(y);
+            float r = fabs(sin(angle));  // ✅ Color changes dynamically
+            float g = fabs(cos(angle));
+            float b = 1.0f - r;
+
+            vertices.insert(vertices.end(), {x, y, r, g, b});
         }
+    }
+
+    std::cerr << "DEBUG: Vertex Count: " << vertices.size() / 5 << std::endl;
+
+    if (vertices.empty()) {
+        std::cerr << "ERROR: No vertices generated!" << std::endl;
+        return;
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(vao);
-    glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 2);
-
+    glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 5);
+    std::cerr << "Render Done" << std::endl;
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
-bool CircleVisualization::shouldClose() {
-    return glfwWindowShouldClose(window);
-}
 
+// bool CircleVisualization::shouldClose() {
+//     return glfwWindowShouldClose(window);
+// }
+
+bool CircleVisualization::shouldClose() {
+    bool closed = glfwWindowShouldClose(window);
+    std::cerr << "DEBUG: shouldClose() returned " << closed << std::endl;
+    return closed;
+}
+    
 void CircleVisualization::cleanup() {
     if (vbo != 0) glDeleteBuffers(1, &vbo);
     if (vao != 0) glDeleteVertexArrays(1, &vao);
