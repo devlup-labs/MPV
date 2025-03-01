@@ -1,9 +1,10 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -lGLEW -lglfw -lGL -lportaudio -lmpg123 -lfftw3f -lm -lsndfile
+CXXFLAGS = -std=c++17 -Wall -I"C:/msys64/mingw64/include" -L"C:/msys64/mingw64/lib" -lglew32 -lglfw3 -lopengl32 -lportaudio -lmpg123 -lfftw3f -lsndfile
+
 
 # Source files
-SRC = main.cpp Audio.cpp Visuals.cpp ../audio/AudioReader.cpp ../audio/FFTProcessor.cpp
+SRC = main.cpp Audio.cpp ../audio/AudioReader.cpp ../audio/FFTProcessor.cpp visualizations/CircleVisualization.cpp visualizations/BarVisualization.cpp
 
 # Output binary
 OUT = audio_visualizer

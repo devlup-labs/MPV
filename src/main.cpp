@@ -1,6 +1,10 @@
 #include "Audio.h"
-#include "Visuals.h"
+#include "visualizations/BaseVisualization.h"
+#include "visualizations/CircleVisualization.h"
+#include "visualizations/BarVisualization.h"
+
 #include <iostream>
+#include <memory>
 
 using namespace std;
 
@@ -13,6 +17,32 @@ int main() {
     cout << "Enter audio file path: ";
     cin >> fileName;
 
+    int choice;
+    cout << "\nSelect visualization:\n";
+    cout << "1. Circle Visualization\n";
+    cout << "2. Bar Visualization\n";
+    cout << "Enter choice: ";
+    cin >> choice;
+
+    unique_ptr<BaseVisualization> visualization;
+
+    switch (choice) {
+        case 1:
+            visualization = make_unique<CircleVisualization>();
+            break;
+        case 2:
+            visualization = make_unique<BarVisualization>();
+            break;
+        default:
+            cout << "Invalid choice. Exiting.\n";
+            return -1;
+    }
+
+    if (!visualization->initialize(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+        cerr << "Failed to initialize visualization." << endl;
+        return -1;
+    }
+
     AudioProcessor audioProcessor(BUFFER_SIZE);
     if (!audioProcessor.loadAudioFile(fileName)) {
         cerr << "Failed to load audio file." << endl;
@@ -24,19 +54,13 @@ int main() {
         return -1;
     }
 
-    Visualization visualization(WINDOW_WIDTH, WINDOW_HEIGHT);
-    if (!visualization.initialize()) {
-        cerr << "Failed to initialize visualization." << endl;
-        return -1;
-    }
-
-    while (!visualization.shouldClose()) {
+    while (!visualization->shouldClose()) {
         auto fftData = audioProcessor.getFFTData();
-        visualization.render(fftData);
+        visualization->render(fftData);
     }
 
     audioProcessor.cleanup();
-    visualization.cleanup();
+    visualization->cleanup();
 
     return 0;
 }
