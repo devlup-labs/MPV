@@ -1,6 +1,7 @@
 #ifndef BAR_VISUALIZATION_H
 #define BAR_VISUALIZATION_H
 
+#include "..\ShaderUtils.h"
 #include "BaseVisualization.h"
 #include <vector>
 #include <GL/glew.h>
@@ -20,6 +21,7 @@ private:
     GLFWwindow* window;
     GLuint vbo, vao;
     std::vector<float> smoothedFFT;
+    GLuint shaderProgram;
 };
 
 #endif
