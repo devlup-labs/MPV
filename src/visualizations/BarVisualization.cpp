@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES  //  Ensures M_PI is defined
 #include "BarVisualization.h"
+#include "ColorUtils.h"
 #include <cmath>
 #include <iostream>
 
@@ -7,6 +8,10 @@ BarVisualization::BarVisualization() : window(nullptr), vbo(0), vao(0), smoothed
 
 BarVisualization::~BarVisualization() {
     cleanup();
+}
+
+static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);  // ✅ Update OpenGL viewport when the window resizes
 }
 
 bool BarVisualization::initialize(int windowWidth, int windowHeight) {
@@ -29,6 +34,9 @@ bool BarVisualization::initialize(int windowWidth, int windowHeight) {
         return false;
     }
 
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
 
@@ -46,25 +54,33 @@ bool BarVisualization::initialize(int windowWidth, int windowHeight) {
 
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f); 
 
+    shaderProgram = createShaderProgram("visualizations/vertexShader.glsl", "visualizations/fragmentShader.glsl");
+    if (shaderProgram == 0) {
+        std::cerr << "ERROR: Failed to create shader program!" << std::endl;
+        exit(1);
+    }
+    
+    glUseProgram(shaderProgram);  // ✅ Ensure OpenGL uses the shaders
+  
     return true;
 }
 
 void BarVisualization::render(const std::vector<float>& fftMagnitudes) {
-    std::cout << "DEBUG: render() called" << std::endl;
     glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(shaderProgram);  // ✅ Ensure shaders are active before drawing
 
     if (fftMagnitudes.empty()) {
         std::cerr << "ERROR: No FFT data received!\n";
         return;
     }
 
-    std::cerr << "DEBUG: FFT data received. First value: " << fftMagnitudes[0] << std::endl;
-
     size_t numBars = fftMagnitudes.size() / 8; // Reduce number of bars for clarity
     std::vector<float> vertices;
 
     float barWidth = 2.0f / numBars; // Normalize to OpenGL's -1 to 1 range
     float maxHeight = 1.0f; // Max height of bars
+    float minHeight = 0.0f;
 
     // Smooth FFT values
     float decayFactor = 0.9f;
@@ -78,15 +94,19 @@ void BarVisualization::render(const std::vector<float>& fftMagnitudes) {
 
         if (height < 0.02f) height = 0.02f;  // Ensure bars are visible
 
-        // ✅ Add position + color (x, y, r, g, b)
-        vertices.insert(vertices.end(), {
-            x, -1.0f,   1.0f, 0.0f, 0.0f,  // Bottom-left (Red)
-            x + barWidth * 0.8f, -1.0f,  0.0f, 1.0f, 0.0f,  // Bottom-right (Green)
-            x, height - 1.0f,  0.0f, 0.0f, 1.0f,  // Top-left (Blue)
+        float amplitude = smoothedFFT[i];  // ✅ Use smoothed value
+        Color color = getColorFromMagnitude(amplitude, minHeight, maxHeight);  // ✅ Get color based on amplitude
 
-            x + barWidth * 0.8f, -1.0f,  1.0f, 1.0f, 0.0f,  // Bottom-right (Yellow)
-            x + barWidth * 0.8f, height - 1.0f,  0.0f, 1.0f, 1.0f,  // Top-right (Cyan)
-            x, height - 1.0f,  1.0f, 0.0f, 1.0f  // Top-left (Magenta)
+        // std::cerr << "DEBUG: Bar " << i << " Color: " << color.r << ", " << color.g << ", " << color.b << std::endl;
+
+        vertices.insert(vertices.end(), {
+            x, -1.0f,   color.r, color.g, color.b,
+            x + barWidth * 0.8f, -1.0f,  color.r, color.g, color.b,
+            x, height - 1.0f,  color.r, color.g, color.b,
+
+            x + barWidth * 0.8f, -1.0f,  color.r, color.g, color.b,
+            x + barWidth * 0.8f, height - 1.0f,  color.r, color.g, color.b,
+            x, height - 1.0f,  color.r, color.g, color.b
         });
     }
 

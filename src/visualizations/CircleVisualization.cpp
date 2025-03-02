@@ -9,6 +9,10 @@ CircleVisualization::~CircleVisualization() {
     cleanup();
 }
 
+static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);  // ✅ Update OpenGL viewport when the window resizes
+}
+
 bool CircleVisualization::initialize(int windowWidth, int windowHeight) {
     std::cerr << "DEBUG: Initializing Circle Visualization..." << std::endl;
     if (!glfwInit()) {
@@ -29,6 +33,8 @@ bool CircleVisualization::initialize(int windowWidth, int windowHeight) {
         std::cerr << "Failed to initialize GLEW." << std::endl;
         return false;
     }
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -59,7 +65,7 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
         return;
     }
 
-    size_t numPoints = fftMagnitudes.size() / 8;
+    size_t numPoints = fftMagnitudes.size() ;
     std::vector<float> vertices;
 
     if (smoothedFFT.size() != numPoints) {
@@ -83,36 +89,34 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
     float centerX = 0.0f, centerY = 0.0f;
 
     for (size_t i = 0; i < numPoints; i += 8) {
-        float angle = 2.0f * M_PI * i / numPoints;
+        float angleOffset = 2.0f * M_PI * i / numPoints;
         float magnitude = smoothedFFT[i];
         float radius = minRadius + (maxRadius - minRadius) * magnitude * 0.5f;
-
-        for (int j = 0; j <= 360; j += 10) {
+    
+        std::vector<float> ringVertices;  // ✅ Store vertices for this ring only
+    
+        for (int j = 0; j < 360; j += 10) {
             float theta = j * M_PI / 180.0f;
-            float x = centerX + radius * cos(theta + angle);
-            float y = centerY + radius * sin(theta + angle);
-
-            float r = fabs(sin(angle));  // ✅ Color changes dynamically
-            float g = fabs(cos(angle));
+            float x = centerX + radius * cos(theta + angleOffset);
+            float y = centerY + radius * sin(theta + angleOffset);
+    
+            float r = fabs(sin(angleOffset));
+            float g = fabs(cos(angleOffset));
             float b = 1.0f - r;
-
-            vertices.insert(vertices.end(), {x, y, r, g, b});
+    
+            ringVertices.insert(ringVertices.end(), {x, y, r, g, b});
         }
+    
+        // ✅ Send this ring separately to OpenGL
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, ringVertices.size() * sizeof(float), ringVertices.data(), GL_DYNAMIC_DRAW);
+    
+        glBindVertexArray(vao);
+        glDrawArrays(GL_LINE_LOOP, 0, ringVertices.size() / 5);  // ✅ Draw only this ring
     }
 
     std::cerr << "DEBUG: Vertex Count: " << vertices.size() / 5 << std::endl;
 
-    if (vertices.empty()) {
-        std::cerr << "ERROR: No vertices generated!" << std::endl;
-        return;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
-
-    glBindVertexArray(vao);
-    glDrawArrays(GL_LINE_LOOP, 0, vertices.size() / 5);
-    std::cerr << "Render Done" << std::endl;
     glfwSwapBuffers(window);
     glfwPollEvents();
 }

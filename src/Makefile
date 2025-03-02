@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -I"C:/msys64/mingw64/include" -L"C:/msys64/mingw64/l
 
 
 # Source files
-SRC = main.cpp Audio.cpp ../audio/AudioReader.cpp ../audio/FFTProcessor.cpp visualizations/CircleVisualization.cpp visualizations/BarVisualization.cpp
+SRC = main.cpp Audio.cpp ShaderUtils.cpp ../audio/AudioReader.cpp ../audio/FFTProcessor.cpp visualizations/CircleVisualization.cpp visualizations/BarVisualization.cpp visualizations/ColorUtils.cpp
 
 # Output binary
 OUT = audio_visualizer
