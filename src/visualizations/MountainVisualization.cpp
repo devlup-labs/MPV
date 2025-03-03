@@ -19,7 +19,7 @@ bool MountainVisualization::initialize(int windowWidth, int windowHeight) {
         return false;
     }
 
-    window = glfwCreateWindow(windowWidth, windowHeight, "Bar Visualization", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Mountain Visualization", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window." << std::endl;
         glfwTerminate();

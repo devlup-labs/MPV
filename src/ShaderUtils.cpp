@@ -38,6 +38,8 @@ GLuint compileShader(GLenum type, const char* source) {
 }
 
 GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
+    std::cerr << "DEBUG: Loading Vertex Shader: " << vertexPath << std::endl;
+    std::cerr << "DEBUG: Loading Fragment Shader: " << fragmentPath << std::endl;
     std::string vertexCode = loadShaderSource(vertexPath);
     std::string fragmentCode = loadShaderSource(fragmentPath);
 
@@ -62,7 +64,7 @@ GLuint createShaderProgram(const char* vertexPath, const char* fragmentPath) {
         glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
         std::cerr << "ERROR: Shader Program Linking Failed\n" << infoLog << std::endl;
     }
-
+    std::cerr << "DEBUG: Shader Program Created Successfully: ID = " << shaderProgram << std::endl;
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 

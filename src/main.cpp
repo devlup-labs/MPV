@@ -42,6 +42,7 @@ int main() {
             break;
         case 4:
             visualization = make_unique<MountainVisualization>();
+            break;
         default:
             cout << "Invalid choice. Exiting.\n";
             return -1;
