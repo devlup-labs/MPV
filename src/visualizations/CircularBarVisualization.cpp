@@ -139,7 +139,9 @@ void CircularBarVisualization::render(const std::vector<float>& fftMagnitudes) {
 
 bool CircularBarVisualization::shouldClose() {
     bool closed = glfwWindowShouldClose(window);
-    std::cerr << "DEBUG: shouldClose() returned " << closed << std::endl;
+    if (closed) {
+        std::cerr << "DEBUG: Window close detected!" << std::endl;
+    }
     return closed;
 }
     
