@@ -2,6 +2,7 @@
 #include "visualizations/BaseVisualization.h"
 #include "visualizations/CircleVisualization.h"
 #include "visualizations/BarVisualization.h"
+#include "visualizations/CircularBarVisualization.h"
 
 #include <iostream>
 #include <memory>
@@ -21,6 +22,7 @@ int main() {
     cout << "\nSelect visualization:\n";
     cout << "1. Circle Visualization\n";
     cout << "2. Bar Visualization\n";
+    cout << "3. Circular Bar Visualization\n";
     cout << "Enter choice: ";
     cin >> choice;
 
@@ -32,6 +34,9 @@ int main() {
             break;
         case 2:
             visualization = make_unique<BarVisualization>();
+            break;
+        case 3:
+            visualization = make_unique<CircularBarVisualization>();
             break;
         default:
             cout << "Invalid choice. Exiting.\n";

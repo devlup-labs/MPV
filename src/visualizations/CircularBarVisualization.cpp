@@ -1,12 +1,12 @@
-#define _USE_MATH_DEFINES  //  Ensures M_PI is defined
-#include "BarVisualization.h"
+#define _USE_MATH_DEFINES
+#include "CircularBarVisualization.h"
 #include "ColorUtils.h"
 #include <cmath>
 #include <iostream>
 
-BarVisualization::BarVisualization() : window(nullptr), vbo(0), vao(0), smoothedFFT(128, 0.0f) {}
+CircularBarVisualization::CircularBarVisualization() : window(nullptr), vbo(0), vao(0), smoothedFFT(128, 0.0f) {}
 
-BarVisualization::~BarVisualization() {
+CircularBarVisualization::~CircularBarVisualization() {
     cleanup();
 }
 
@@ -14,13 +14,14 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);  // ✅ Update OpenGL viewport when the window resizes
 }
 
-bool BarVisualization::initialize(int windowWidth, int windowHeight) {
+bool CircularBarVisualization::initialize(int windowWidth, int windowHeight) {
+    std::cerr << "DEBUG: Initializing Circular Bar Visualization..." << std::endl;
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW." << std::endl;
         return false;
     }
 
-    window = glfwCreateWindow(windowWidth, windowHeight, "Bar Visualization", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Circular Bar Visualization", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window." << std::endl;
         glfwTerminate();
@@ -36,7 +37,6 @@ bool BarVisualization::initialize(int windowWidth, int windowHeight) {
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
 
@@ -51,6 +51,7 @@ bool BarVisualization::initialize(int windowWidth, int windowHeight) {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    std::cerr << "DEBUG: VAO and VBO configured successfully!" << std::endl;
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); 
 
@@ -60,15 +61,14 @@ bool BarVisualization::initialize(int windowWidth, int windowHeight) {
         exit(1);
     }
     
-    glUseProgram(shaderProgram);  // ✅ Ensure OpenGL uses the shaders
-  
+
     return true;
 }
 
-void BarVisualization::render(const std::vector<float>& fftMagnitudes) {
-    glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(shaderProgram);  // ✅ Ensure shaders are active before drawing
+void CircularBarVisualization::render(const std::vector<float>& fftMagnitudes) {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(shaderProgram);
 
     if (fftMagnitudes.empty()) {
         std::cerr << "ERROR: No FFT data received!\n";
@@ -77,11 +77,11 @@ void BarVisualization::render(const std::vector<float>& fftMagnitudes) {
 
     size_t numBars = fftMagnitudes.size() / 8; // Reduce number of bars for clarity
     std::vector<float> vertices;
-
-    float barWidth = 2.0f / numBars; // Normalize to OpenGL's -1 to 1 range
-    float maxHeight = 1.0f; // Max height of bars
-    float minHeight = 0.0f;
-
+    
+    float innerRadius = 0.3f;  // Minimum radius for bars
+    float maxHeight = 0.6f;    // Maximum extension
+    float angleStep = (2.0f * M_PI) / numBars;
+    
     // Smooth FFT values
     float decayFactor = 0.9f;
     for (size_t i = 0; i < numBars; ++i) {
@@ -89,43 +89,61 @@ void BarVisualization::render(const std::vector<float>& fftMagnitudes) {
     }
 
     for (size_t i = 0; i < numBars; ++i) {
-        float x = -1.0f + i * barWidth;
-        float height = smoothedFFT[i] * maxHeight;
+        float angle = i * angleStep;
+        float magnitude = smoothedFFT[i];
+        float barHeight = innerRadius + magnitude * maxHeight;
+        
+        // Compute bar endpoints
+        float x1 = innerRadius * cos(angle);
+        float y1 = innerRadius * sin(angle);
+        float x2 = barHeight * cos(angle);
+        float y2 = barHeight * sin(angle);
 
-        if (height < 0.02f) height = 0.02f;  // Ensure bars are visible
+        Color color = getColorFromMagnitude(magnitude, 0.0f, 1.0f); // Map to color
 
-        float amplitude = smoothedFFT[i];  // ✅ Use smoothed value
-        Color color = getColorFromMagnitude(amplitude, minHeight, maxHeight);  // ✅ Get color based on amplitude
+        // Store triangle vertices (for bar width)
+        float barWidth = angleStep * 0.4f;  // Controls thickness
+        float x3 = innerRadius * cos(angle + barWidth);
+        float y3 = innerRadius * sin(angle + barWidth);
+        float x4 = barHeight * cos(angle + barWidth);
+        float y4 = barHeight * sin(angle + barWidth);
 
-        // std::cerr << "DEBUG: Bar " << i << " Color: " << color.r << ", " << color.g << ", " << color.b << std::endl;
-
+        // Push triangle vertices to buffer
         vertices.insert(vertices.end(), {
-            x, -1.0f,   color.r, color.g, color.b,
-            x + barWidth * 0.8f, -1.0f,  color.r, color.g, color.b,
-            x, height - 1.0f,  color.r, color.g, color.b,
+            x1, y1, color.r, color.g, color.b,
+            x2, y2, color.r, color.g, color.b,
+            x3, y3, color.r, color.g, color.b,
 
-            x + barWidth * 0.8f, -1.0f,  color.r, color.g, color.b,
-            x + barWidth * 0.8f, height - 1.0f,  color.r, color.g, color.b,
-            x, height - 1.0f,  color.r, color.g, color.b
+            x2, y2, color.r, color.g, color.b,
+            x3, y3, color.r, color.g, color.b,
+            x4, y4, color.r, color.g, color.b
         });
     }
 
-
+    // Send data to GPU
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
     glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 2);
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 5);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
-bool BarVisualization::shouldClose() {
-    return glfwWindowShouldClose(window);
-}
 
-void BarVisualization::cleanup() {
+
+// bool CircleVisualization::shouldClose() {
+//     return glfwWindowShouldClose(window);
+// }
+
+bool CircularBarVisualization::shouldClose() {
+    bool closed = glfwWindowShouldClose(window);
+    std::cerr << "DEBUG: shouldClose() returned " << closed << std::endl;
+    return closed;
+}
+    
+void CircularBarVisualization::cleanup() {
     if (vbo != 0) glDeleteBuffers(1, &vbo);
     if (vao != 0) glDeleteVertexArrays(1, &vao);
     if (window) glfwDestroyWindow(window);
