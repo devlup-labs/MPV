@@ -9,5 +9,5 @@ Color getColorFromMagnitude(float magnitude, float minMagnitude, float maxMagnit
     float g = std::clamp(1.0f - normalized, 0.0f, 1.0f);
     float b = std::clamp(normalized, 0.0f, 1.0f);      // ✅ Blue increases
 
-    return { r / 255.0f, g / 255.0f, b / 255.0f };  // Normalize to OpenGL's 0-1 range
+    return { r , g , b  };  // Normalize to OpenGL's 0-1 range
 }
