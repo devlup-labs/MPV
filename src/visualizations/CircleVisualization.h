@@ -2,6 +2,7 @@
 #define CIRCLE_VISUALIZATION_H
 
 #include "BaseVisualization.h"
+#include "..\ShaderUtils.h"
 #include <vector>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -20,6 +21,7 @@ private:
     GLFWwindow* window;
     GLuint vbo, vao;
     std::vector<float> smoothedFFT;
+    GLint shaderProgram;
 };
 
 #endif

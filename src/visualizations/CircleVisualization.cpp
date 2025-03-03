@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
 #include "CircleVisualization.h"
+#include "ColorUtils.h"
 #include <cmath>
 #include <iostream>
 
@@ -50,14 +51,19 @@ bool CircleVisualization::initialize(int windowWidth, int windowHeight) {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    std::cerr << "DEBUG: VAO and VBO configured successfully!" << std::endl;
+    shaderProgram = createShaderProgram("visualizations/vertexShader.glsl", "visualizations/fragmentShader.glsl");
+    if (shaderProgram == 0) {
+        std::cerr << "ERROR: Failed to create shader program!" << std::endl;
+        exit(1);
+    }
+
+    glUseProgram(shaderProgram);
 
     return true;
 }
 
 
 void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
-    std::cerr << "DEBUG: ENtered CircleVisualization::render()" << std::endl;
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (fftMagnitudes.empty()) {
@@ -72,8 +78,6 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
         smoothedFFT.resize(numPoints, 0.0f);
     }
 
-    std::cerr << "DEBUG: numPoints = " << numPoints << std::endl;
-
     if (numPoints == 0) {
         std::cerr << "ERROR: No FFT data received!" << std::endl;
         return;
@@ -85,7 +89,7 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
     }
 
     float maxRadius = 0.9f;
-    float minRadius = 0.3f;
+    float minRadius = 0.1f;
     float centerX = 0.0f, centerY = 0.0f;
 
     for (size_t i = 0; i < numPoints; i += 8) {
@@ -94,16 +98,22 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
         float radius = minRadius + (maxRadius - minRadius) * magnitude * 0.5f;
     
         std::vector<float> ringVertices;  // ✅ Store vertices for this ring only
+
+        Color color = getColorFromMagnitude(smoothedFFT[i], 0.0f, 1.0f);
     
-        for (int j = 0; j < 360; j += 10) {
+        for (int j = 0; j < 360; j += 1) {
             float theta = j * M_PI / 180.0f;
             float x = centerX + radius * cos(theta + angleOffset);
             float y = centerY + radius * sin(theta + angleOffset);
     
-            float r = fabs(sin(angleOffset));
-            float g = fabs(cos(angleOffset));
-            float b = 1.0f - r;
-    
+            float r = color.r;
+            float g = color.g;
+            float b = color.b;
+
+            // float r = 0.5f;
+            // float g = 0.5f;
+            // float b = 0.5f;
+            
             ringVertices.insert(ringVertices.end(), {x, y, r, g, b});
         }
     
@@ -114,8 +124,6 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
         glBindVertexArray(vao);
         glDrawArrays(GL_LINE_LOOP, 0, ringVertices.size() / 5);  // ✅ Draw only this ring
     }
-
-    std::cerr << "DEBUG: Vertex Count: " << vertices.size() / 5 << std::endl;
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -128,7 +136,6 @@ void CircleVisualization::render(const std::vector<float>& fftMagnitudes) {
 
 bool CircleVisualization::shouldClose() {
     bool closed = glfwWindowShouldClose(window);
-    std::cerr << "DEBUG: shouldClose() returned " << closed << std::endl;
     return closed;
 }
     
